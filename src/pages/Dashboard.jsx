@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { Client, Antenna, Payment } from '@/api/entities';
 import { Users, Radio, CreditCard, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import useCurrentUser from '@/hooks/useCurrentUser';
+import ErrorState from '@/Components/ErrorState';
 
-function StatCard({ label, value, color, to }) {
+function StatCard({ icon: Icon, label, value, color, to }) {
   const content = (
     <div className="bg-card rounded-2xl border border-border p-6 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 group cursor-pointer">
       <div className="flex items-start justify-between">
@@ -13,6 +14,7 @@ function StatCard({ label, value, color, to }) {
           <p className="text-3xl font-bold mt-2 text-foreground">{value}</p>
         </div>
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${color} transition-transform group-hover:scale-110`}>
+          <Icon className="w-6 h-6" />
         </div>
       </div>
     </div>
@@ -24,31 +26,39 @@ export default function Dashboard() {
   const { user, isAdmin } = useCurrentUser();
   const [stats, setStats] = useState({ clients: 0, antennas: 0, payments: 0, pending: 0 });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     async function loadStats() {
-      const [clients, antennas, payments] = await Promise.all([
-        base44.entities.Client.list(),
-        base44.entities.Antenna.list(),
-        base44.entities.Payment.list(),
-      ]);
+      try {
+        const [clients, antennas, payments] = await Promise.all([
+          Client.list(),
+          Antenna.list(),
+          Payment.list(),
+        ]);
 
-      const now = new Date();
-      const currentMonth = now.getMonth() + 1;
-      const currentYear = now.getFullYear();
-      const paidThisMonth = payments.filter(p => p.month === currentMonth && p.year === currentYear);
-      const pendingCount = clients.filter(c => c.status === 'Activo').length - paidThisMonth.length;
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1;
+        const currentYear = now.getFullYear();
+        const paidThisMonth = payments.filter(p => p.month === currentMonth && p.year === currentYear);
+        const pendingCount = clients.filter(c => c.status === 'Activo').length - paidThisMonth.length;
 
-      setStats({
-        clients: clients.length,
-        antennas: antennas.length,
-        payments: paidThisMonth.length,
-        pending: Math.max(0, pendingCount),
-      });
-      setLoading(false);
+        setStats({
+          clients: clients.length,
+          antennas: antennas.length,
+          payments: paidThisMonth.length,
+          pending: Math.max(0, pendingCount),
+        });
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
     }
     loadStats();
   }, []);
+
+  if (error) return <ErrorState message={error} />;
 
   if (loading) {
     return (

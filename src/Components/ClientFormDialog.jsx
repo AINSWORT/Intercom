@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { base44 } from '@/api/base44Client';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { Client } from '@/api/entities';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/Components/UI/dialog';
+import { Input } from '@/Components/UI/input';
+import { Button } from '@/Components/UI/button';
+import { Label } from '@/Components/UI/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/UI/select';
+import { Textarea } from '@/Components/UI/textarea';
 
 export default function ClientFormDialog({ client, antennas, technicians, onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -27,9 +27,9 @@ export default function ClientFormDialog({ client, antennas, technicians, onClos
     setSaving(true);
     const data = { ...form, monthly_fee: form.monthly_fee ? Number(form.monthly_fee) : undefined };
     if (client) {
-      await base44.entities.Client.update(client.id, data);
+      await Client.update(client.id, data);
     } else {
-      await base44.entities.Client.create(data);
+      await Client.create(data);
     }
     setSaving(false);
     onSaved();

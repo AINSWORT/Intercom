@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { Payment } from '@/api/entities';
 import { Check, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/Components/UI/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/Components/UI/dialog';
+import { Input } from '@/Components/UI/input';
+import { Label } from '@/Components/UI/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/UI/select';
 
 const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
@@ -24,7 +24,7 @@ export default function PaymentCalendar({ clientId, payments, monthlyFee, onPaym
 
   const registerPayment = async () => {
     setSaving(true);
-    await base44.entities.Payment.create({
+    await Payment.create({
       client_id: clientId,
       year,
       month: payDialog,
@@ -39,7 +39,7 @@ export default function PaymentCalendar({ clientId, payments, monthlyFee, onPaym
   };
 
   const deletePayment = async (paymentId) => {
-    await base44.entities.Payment.delete(paymentId);
+    await Payment.delete(paymentId);
     onPaymentChange();
   };
 

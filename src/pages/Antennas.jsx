@@ -1,35 +1,43 @@
 import { useEffect, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { Antenna as AntennaEntity } from '@/api/entities';
 import { Plus, Radio, Edit, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Button } from '@/Components/UI/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/Components/UI/alert-dialog';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import AntennaFormDialog from '@/Components/AntennaFormDialog';
+import ErrorState from '@/Components/ErrorState';
 
 export default function Antennas() {
-  const { isAdmin } = useCurrentUser();
+  const { user, isAdmin, isSuperadmin } = useCurrentUser();
+  const canModify = (antenna) => isSuperadmin || (user?.role === 'admin' && antenna.created_by === user?.id);
   const [antennas, setAntennas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      const a = await base44.entities.Antenna.list('-created_date');
-      setAntennas(a);
-      setLoading(false);
+      try {
+        const a = await AntennaEntity.list('-created_at');
+        setAntennas(a);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, []);
 
   const reloadData = async () => {
-    const a = await base44.entities.Antenna.list('-created_date');
+    const a = await AntennaEntity.list('-created_at');
     setAntennas(a);
   };
 
   const handleDelete = async () => {
-    await base44.entities.Antenna.delete(deleting.id);
+    await AntennaEntity.delete(deleting.id);
     setDeleting(null);
     await reloadData();
   };
@@ -39,6 +47,8 @@ export default function Antennas() {
     Inactiva: 'bg-red-100 text-red-700',
     'En mantenimiento': 'bg-yellow-100 text-yellow-700',
   };
+
+  if (error) return <ErrorState message={error} />;
 
   if (loading) {
     return (
@@ -69,7 +79,7 @@ export default function Antennas() {
               <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
                 <Radio className="w-5 h-5 text-accent-foreground" />
               </div>
-              {isAdmin && (
+              {canModify(antenna) && (
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(antenna); setShowForm(true); }}>
                     <Edit className="w-3.5 h-3.5" />

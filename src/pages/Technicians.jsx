@@ -1,38 +1,54 @@
 import { useEffect, useState } from 'react';
-import { base44 } from '@/api/base44Client';
-import { UserPlus, Shield, Wrench } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Profile, Client } from '@/api/entities';
+import { supabaseAdmin } from '@/lib/supabaseClient';
+import { UserPlus, Shield, ShieldCheck, Wrench } from 'lucide-react';
+import { Button } from '@/Components/UI/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/Components/UI/dialog';
+import { Input } from '@/Components/UI/input';
+import { Label } from '@/Components/UI/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/UI/select';
+import useCurrentUser from '@/hooks/useCurrentUser';
+import ErrorState from '@/Components/ErrorState';
+
+const ROLE_LABEL = { superadmin: 'Superadmin', admin: 'Admin', usuario: 'Técnico' };
+const ROLE_ICON = { superadmin: ShieldCheck, admin: Shield, usuario: Wrench };
 
 export default function Technicians() {
+  const { isSuperadmin } = useCurrentUser();
   const [users, setUsers] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('tecnico');
+  const [inviteFullName, setInviteFullName] = useState('');
+  const [invitePassword, setInvitePassword] = useState('');
   const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState(null);
+  const [roleUpdating, setRoleUpdating] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      const [u, c] = await Promise.all([
-        base44.entities.User.list(),
-        base44.entities.Client.list(),
-      ]);
-      setUsers(u);
-      setClients(c);
-      setLoading(false);
+      try {
+        const [u, c] = await Promise.all([
+          Profile.list(),
+          Client.list(),
+        ]);
+        setUsers(u);
+        setClients(c);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, []);
 
   const reloadData = async () => {
     const [u, c] = await Promise.all([
-      base44.entities.User.list(),
-      base44.entities.Client.list(),
+      Profile.list(),
+      Client.list(),
     ]);
     setUsers(u);
     setClients(c);
@@ -40,16 +56,41 @@ export default function Technicians() {
 
   const handleInvite = async () => {
     setInviting(true);
-    await base44.users.inviteUser(inviteEmail, inviteRole === 'admin' ? 'admin' : 'user');
-    // After invite, update role if tecnico
-    // Note: invited user will have default role, we need to wait for them to register
+    setInviteError(null);
+    // Se usa un cliente Supabase aislado (sin persistir sesión) para no
+    // reemplazar la sesión de quien está creando la cuenta.
+    // El rol nunca se pasa desde aquí: siempre nace como 'usuario' y solo
+    // un superadmin puede ascenderlo después (ver protect_role_change en schema.sql).
+    const { error } = await supabaseAdmin.auth.signUp({
+      email: inviteEmail,
+      password: invitePassword,
+      options: { data: { full_name: inviteFullName } },
+    });
     setInviting(false);
+    if (error) {
+      setInviteError(error.message);
+      return;
+    }
     setShowInvite(false);
     setInviteEmail('');
+    setInviteFullName('');
+    setInvitePassword('');
     reloadData();
   };
 
+  const handleRoleChange = async (userId, newRole) => {
+    setRoleUpdating(userId);
+    try {
+      await Profile.update(userId, { role: newRole });
+      await reloadData();
+    } finally {
+      setRoleUpdating(null);
+    }
+  };
+
   const getClientCount = (email) => clients.filter(c => c.technician_email === email).length;
+
+  if (error) return <ErrorState message={error} />;
 
   if (loading) {
     return (
@@ -67,43 +108,69 @@ export default function Technicians() {
           <p className="text-muted-foreground text-sm">{users.length} usuarios en el sistema</p>
         </div>
         <Button onClick={() => setShowInvite(true)} className="gap-2">
-          <UserPlus className="w-4 h-4" /> Invitar Usuario
+          <UserPlus className="w-4 h-4" /> Invitar Técnico
         </Button>
       </div>
 
       <div className="space-y-2">
-        {users.map(user => (
-          <div key={user.id} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                user.role === 'admin' ? 'bg-primary/10 text-primary' : 'bg-accent text-accent-foreground'
-              }`}>
-                {user.role === 'admin' ? <Shield className="w-5 h-5" /> : <Wrench className="w-5 h-5" />}
+        {users.map(user => {
+          const RoleIcon = ROLE_ICON[user.role] || Wrench;
+          return (
+            <div key={user.id} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                  user.role === 'usuario' ? 'bg-accent text-accent-foreground' : 'bg-primary/10 text-primary'
+                }`}>
+                  <RoleIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">{user.full_name || 'Sin nombre'}</h3>
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-foreground">{user.full_name || 'Sin nombre'}</h3>
-                <p className="text-sm text-muted-foreground">{user.email}</p>
+              <div className="text-right">
+                {isSuperadmin ? (
+                  <Select
+                    value={user.role}
+                    onValueChange={v => handleRoleChange(user.id, v)}
+                    disabled={roleUpdating === user.id}
+                  >
+                    <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="usuario">Técnico</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="superadmin">Superadmin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                    user.role === 'usuario' ? 'bg-accent text-accent-foreground' : 'bg-primary/10 text-primary'
+                  }`}>
+                    {ROLE_LABEL[user.role] || user.role}
+                  </span>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">{getClientCount(user.email)} clientes asignados</p>
               </div>
             </div>
-            <div className="text-right">
-              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                user.role === 'admin' ? 'bg-primary/10 text-primary' : 'bg-accent text-accent-foreground'
-              }`}>
-                {user.role === 'admin' ? 'Superadmin' : 'Técnico'}
-              </span>
-              <p className="text-xs text-muted-foreground mt-1">{getClientCount(user.email)} clientes asignados</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {showInvite && (
         <Dialog open onOpenChange={() => setShowInvite(false)}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
-              <DialogTitle>Invitar Usuario</DialogTitle>
+              <DialogTitle>Invitar Técnico</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
+              <div>
+                <Label>Nombre completo</Label>
+                <Input
+                  value={inviteFullName}
+                  onChange={e => setInviteFullName(e.target.value)}
+                  placeholder="Nombre del técnico"
+                />
+              </div>
               <div>
                 <Label>Email</Label>
                 <Input
@@ -114,19 +181,23 @@ export default function Technicians() {
                 />
               </div>
               <div>
-                <Label>Rol</Label>
-                <Select value={inviteRole} onValueChange={setInviteRole}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="tecnico">Técnico</SelectItem>
-                    <SelectItem value="admin">Superadmin</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Contraseña temporal</Label>
+                <Input
+                  type="password"
+                  value={invitePassword}
+                  onChange={e => setInvitePassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  minLength={6}
+                />
               </div>
+              <p className="text-xs text-muted-foreground">
+                La cuenta se crea con rol Técnico. Un superadmin puede ascenderla después desde esta misma pantalla.
+              </p>
+              {inviteError && <p className="text-sm text-destructive font-medium">{inviteError}</p>}
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setShowInvite(false)} className="flex-1">Cancelar</Button>
-                <Button onClick={handleInvite} disabled={inviting || !inviteEmail} className="flex-1">
-                  {inviting ? 'Invitando...' : 'Invitar'}
+                <Button onClick={handleInvite} disabled={inviting || !inviteEmail || !inviteFullName || invitePassword.length < 6} className="flex-1">
+                  {inviting ? 'Creando...' : 'Crear cuenta'}
                 </Button>
               </div>
             </div>

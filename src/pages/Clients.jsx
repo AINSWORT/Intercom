@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { Client as ClientEntity, Antenna, Profile } from '@/api/entities';
 import { Link } from 'react-router-dom';
 import { Plus, Search, ChevronRight } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/Components/UI/input';
+import { Button } from '@/Components/UI/button';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import ClientFormDialog from '@/Components/ClientFormDialog';
+import ErrorState from '@/Components/ErrorState';
 
 export default function Clients() {
   const { isAdmin } = useCurrentUser();
@@ -16,31 +16,37 @@ export default function Clients() {
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      const [c, a, t] = await Promise.all([
-        base44.entities.Client.list('-created_date'),
-        base44.entities.Antenna.list(),
-        base44.entities.User.list(),
-      ]);
-      setClients(c);
-      setAntennas(a);
-      setTechnicians(t.filter(u => u.role === 'tecnico' || u.role === 'admin'));
-      setLoading(false);
+      try {
+        const [c, a, t] = await Promise.all([
+          ClientEntity.list('-created_at'),
+          Antenna.list(),
+          Profile.list(),
+        ]);
+        setClients(c);
+        setAntennas(a);
+        setTechnicians(t);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, []);
 
   const reloadData = async () => {
     const [c, a, t] = await Promise.all([
-      base44.entities.Client.list('-created_date'),
-      base44.entities.Antenna.list(),
-      base44.entities.User.list(),
+      ClientEntity.list('-created_at'),
+      Antenna.list(),
+      Profile.list(),
     ]);
     setClients(c);
     setAntennas(a);
-    setTechnicians(t.filter(u => u.role === 'tecnico' || u.role === 'admin'));
+    setTechnicians(t);
   };
 
   const filtered = clients.filter(c =>
@@ -57,6 +63,8 @@ export default function Clients() {
     Suspendido: 'bg-yellow-100 text-yellow-700',
     Cancelado: 'bg-red-100 text-red-700',
   };
+
+  if (error) return <ErrorState message={error} />;
 
   if (loading) {
     return (

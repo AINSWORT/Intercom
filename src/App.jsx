@@ -1,59 +1,57 @@
-import { useState } from 'react'
-import './App.css'
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from '@/lib/useAuth';
+import useCurrentUser from '@/hooks/useCurrentUser';
+import AppLayout from '@/Components/AppLayout';
+import LoginPage from '@/pages/LoginPage';
+import ResetPasswordPage from '@/pages/ResetPasswordPage';
+import Dashboard from '@/pages/Dashboard';
+import Clients from '@/pages/Clients';
+import ClientDetail from '@/pages/ClientDetail';
+import Antennas from '@/pages/Antennas';
+import Technicians from '@/pages/Technicians';
+import PageNotFound from '@/lib/PageNotFound';
 
-function App() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-
-  const handleSubmit = (event) => {
-    event.preventDefault()
-    alert(`Iniciando sesión como ${email}`)
-  }
-
+function FullScreenSpinner() {
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="login-brand">
-          <div className="login-logo">N</div>
-          <h1>Bienvenido a NetTrack Pro</h1>
-          <p>Inicia sesión para continuar</p>
-        </div>
-
-        <button type="button" className="button-google">
-          <span>G</span>
-          Continuar con Google
-        </button>
-
-        <div className="divider">o</div>
-
-        <form onSubmit={handleSubmit} className="login-form">
-          <label>
-            Correo electrónico
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="tú@ejemplo.com"
-              required
-            />
-          </label>
-
-          <label>
-            Contraseña
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
-          </label>
-
-          <button type="submit" className="button-submit">Iniciar sesión</button>
-        </form>
-      </div>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
     </div>
-  )
+  );
 }
 
-export default App
+function RequireAdmin({ children }) {
+  const { isAdmin, loading } = useCurrentUser();
+  if (loading) return <FullScreenSpinner />;
+  if (!isAdmin) return <Navigate to="/" replace />;
+  return children;
+}
+
+function App() {
+  const { isAuthenticated, isLoadingAuth, isPasswordRecovery } = useAuth();
+
+  if (isLoadingAuth) return <FullScreenSpinner />;
+  if (isPasswordRecovery) return <ResetPasswordPage />;
+  if (!isAuthenticated) return <LoginPage />;
+
+  return (
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/clientes" element={<Clients />} />
+        <Route path="/clientes/:id" element={<ClientDetail />} />
+        <Route path="/antenas" element={<Antennas />} />
+        <Route
+          path="/tecnicos"
+          element={
+            <RequireAdmin>
+              <Technicians />
+            </RequireAdmin>
+          }
+        />
+        <Route path="*" element={<PageNotFound />} />
+      </Route>
+    </Routes>
+  );
+}
+
+export default App;

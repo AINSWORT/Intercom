@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { base44 } from '@/api/base44Client';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { Antenna } from '@/api/entities';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/Components/UI/dialog';
+import { Input } from '@/Components/UI/input';
+import { Button } from '@/Components/UI/button';
+import { Label } from '@/Components/UI/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/UI/select';
+import { Textarea } from '@/Components/UI/textarea';
 
 export default function AntennaFormDialog({ antenna, onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -20,9 +20,9 @@ export default function AntennaFormDialog({ antenna, onClose, onSaved }) {
   const handleSave = async () => {
     setSaving(true);
     if (antenna) {
-      await base44.entities.Antenna.update(antenna.id, form);
+      await Antenna.update(antenna.id, form);
     } else {
-      await base44.entities.Antenna.create(form);
+      await Antenna.create(form);
     }
     setSaving(false);
     onSaved();

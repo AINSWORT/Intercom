@@ -1,64 +1,73 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { Client, Antenna, Profile, Payment } from '@/api/entities';
 import { ArrowLeft, Edit, Trash2, Phone, MapPin, Radio, CreditCard, Calendar } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Button } from '@/Components/UI/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/Components/UI/alert-dialog';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import PaymentCalendar from '@/Components/PaymentCalendar';
 import ClientFormDialog from '@/Components/ClientFormDialog';
+import ErrorState from '@/Components/ErrorState';
 
 export default function ClientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAdmin } = useCurrentUser();
+  const { user, isSuperadmin } = useCurrentUser();
   const [client, setClient] = useState(null);
   const [payments, setPayments] = useState([]);
   const [antennas, setAntennas] = useState([]);
   const [technicians, setTechnicians] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
-      const [clients, a, t, p] = await Promise.all([
-        base44.entities.Client.list(),
-        base44.entities.Antenna.list(),
-        base44.entities.User.list(),
-        base44.entities.Payment.filter({ client_id: id }),
-      ]);
-      setClient(clients.find(c => c.id === id));
-      setAntennas(a);
-      setTechnicians(t.filter(u => u.role === 'tecnico' || u.role === 'admin'));
-      setPayments(p);
-      setLoading(false);
+      try {
+        const [clients, a, t, p] = await Promise.all([
+          Client.list(),
+          Antenna.list(),
+          Profile.list(),
+          Payment.filter({ client_id: id }),
+        ]);
+        setClient(clients.find(c => c.id === id));
+        setAntennas(a);
+        setTechnicians(t);
+        setPayments(p);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, [id]);
 
   const reloadData = async () => {
     const [clients, a, t, p] = await Promise.all([
-      base44.entities.Client.list(),
-      base44.entities.Antenna.list(),
-      base44.entities.User.list(),
-      base44.entities.Payment.filter({ client_id: id }),
+      Client.list(),
+      Antenna.list(),
+      Profile.list(),
+      Payment.filter({ client_id: id }),
     ]);
     setClient(clients.find(c => c.id === id));
     setAntennas(a);
-    setTechnicians(t.filter(u => u.role === 'tecnico' || u.role === 'admin'));
+    setTechnicians(t);
     setPayments(p);
   };
 
   const loadPayments = async () => {
-    const p = await base44.entities.Payment.filter({ client_id: id });
+    const p = await Payment.filter({ client_id: id });
     setPayments(p);
   };
 
   const handleDelete = async () => {
-    await base44.entities.Client.delete(id);
+    await Client.delete(id);
     navigate('/clientes');
   };
+
+  if (error) return <ErrorState message={error} />;
 
   if (loading) {
     return (
@@ -100,7 +109,7 @@ export default function ClientDetail() {
             </span>
           </div>
         </div>
-        {isAdmin && (
+        {(isSuperadmin || (user?.role === 'admin' && client.created_by === user?.id)) && (
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setShowEdit(true)} className="gap-1.5">
               <Edit className="w-4 h-4" /> Editar
