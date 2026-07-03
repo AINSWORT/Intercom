@@ -71,13 +71,6 @@ export const AuthProvider = ({ children }) => {
     return { error, needsEmailConfirmation };
   };
 
-  const loginWithGoogle = async () => {
-    setAuthError(null);
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
-    if (error) setAuthError({ type: 'login_failed', message: error.message });
-    return { error };
-  };
-
   const logout = async () => {
     await supabase.auth.signOut();
   };
@@ -109,7 +102,6 @@ export const AuthProvider = ({ children }) => {
       authError,
       login,
       register,
-      loginWithGoogle,
       logout,
       resetPasswordForEmail,
       updatePassword,

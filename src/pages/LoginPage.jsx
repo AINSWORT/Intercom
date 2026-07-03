@@ -5,7 +5,7 @@ import Footer from '@/Components/Footer';
 import '@/App.css';
 
 export default function LoginPage() {
-  const { login, register, loginWithGoogle, resetPasswordForEmail, authError } = useAuth();
+  const { login, register, resetPasswordForEmail, authError } = useAuth();
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -52,16 +52,6 @@ export default function LoginPage() {
             <h1>Intercom</h1>
             <p>{titles[mode]}</p>
           </div>
-
-          {mode !== 'forgot' && (
-            <>
-              <button type="button" className="button-google" onClick={loginWithGoogle}>
-                <span>G</span>
-                Continuar con Google
-              </button>
-              <div className="divider">o</div>
-            </>
-          )}
 
           <form onSubmit={handleSubmit} className="login-form">
             {mode === 'register' && (

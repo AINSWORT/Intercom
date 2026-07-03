@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Profile, Client } from '@/api/entities';
-import { supabaseAdmin } from '@/lib/supabaseClient';
-import { UserPlus, Shield, ShieldCheck, Wrench } from 'lucide-react';
+import { supabase, supabaseAdmin } from '@/lib/supabaseClient';
+import { UserPlus, Shield, ShieldCheck, Wrench, Trash2 } from 'lucide-react';
 import { Button } from '@/Components/UI/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/Components/UI/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/Components/UI/alert-dialog';
 import { Input } from '@/Components/UI/input';
 import { Label } from '@/Components/UI/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/UI/select';
@@ -14,7 +15,7 @@ const ROLE_LABEL = { superadmin: 'Superadmin', admin: 'Admin', usuario: 'Técnic
 const ROLE_ICON = { superadmin: ShieldCheck, admin: Shield, usuario: Wrench };
 
 export default function Technicians() {
-  const { isSuperadmin } = useCurrentUser();
+  const { user: currentUser, isSuperadmin } = useCurrentUser();
   const [users, setUsers] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +27,9 @@ export default function Technicians() {
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState(null);
   const [roleUpdating, setRoleUpdating] = useState(null);
+  const [deletingUser, setDeletingUser] = useState(null);
+  const [deleteUserError, setDeleteUserError] = useState(null);
+  const [deletingInProgress, setDeletingInProgress] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,6 +92,23 @@ export default function Technicians() {
     }
   };
 
+  const handleDeleteUser = async () => {
+    setDeletingInProgress(true);
+    setDeleteUserError(null);
+    const { data: { session } } = await supabase.auth.getSession();
+    const { error } = await supabase.functions.invoke('delete-user', {
+      body: { userId: deletingUser.id },
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    setDeletingInProgress(false);
+    if (error) {
+      setDeleteUserError(error.message);
+      return;
+    }
+    setDeletingUser(null);
+    await reloadData();
+  };
+
   const getClientCount = (email) => clients.filter(c => c.technician_email === email).length;
 
   if (error) return <ErrorState message={error} />;
@@ -129,26 +150,38 @@ export default function Technicians() {
                 </div>
               </div>
               <div className="text-right">
-                {isSuperadmin ? (
-                  <Select
-                    value={user.role}
-                    onValueChange={v => handleRoleChange(user.id, v)}
-                    disabled={roleUpdating === user.id}
-                  >
-                    <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="usuario">Técnico</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="superadmin">Superadmin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                    user.role === 'usuario' ? 'bg-accent text-accent-foreground' : 'bg-primary/10 text-primary'
-                  }`}>
-                    {ROLE_LABEL[user.role] || user.role}
-                  </span>
-                )}
+                <div className="flex items-center gap-2 justify-end">
+                  {isSuperadmin ? (
+                    <Select
+                      value={user.role}
+                      onValueChange={v => handleRoleChange(user.id, v)}
+                      disabled={roleUpdating === user.id}
+                    >
+                      <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="usuario">Técnico</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="superadmin">Superadmin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                      user.role === 'usuario' ? 'bg-accent text-accent-foreground' : 'bg-primary/10 text-primary'
+                    }`}>
+                      {ROLE_LABEL[user.role] || user.role}
+                    </span>
+                  )}
+                  {isSuperadmin && user.id !== currentUser?.id && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => setDeletingUser(user)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground mt-1">{getClientCount(user.email)} clientes asignados</p>
               </div>
             </div>
@@ -204,6 +237,28 @@ export default function Technicians() {
           </DialogContent>
         </Dialog>
       )}
+
+      <AlertDialog open={!!deletingUser} onOpenChange={() => { setDeletingUser(null); setDeleteUserError(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará por completo la cuenta de {deletingUser?.full_name || deletingUser?.email}. No podrá volver a iniciar sesión. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteUserError && <p className="text-sm text-destructive font-medium">{deleteUserError}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDeleteUser(); }}
+              disabled={deletingInProgress}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingInProgress ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
