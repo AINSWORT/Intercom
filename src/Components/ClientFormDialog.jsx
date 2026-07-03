@@ -59,7 +59,7 @@ export default function ClientFormDialog({ client, antennas, technicians, onClos
             </div>
           </div>
           <div>
-            <Label>Dirección *</Label>
+            <Label>Dirección</Label>
             <Input value={form.address} onChange={e => updateForm('address', e.target.value)} />
           </div>
           <div>
@@ -68,7 +68,7 @@ export default function ClientFormDialog({ client, antennas, technicians, onClos
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Antena *</Label>
+              <Label>Antena</Label>
               <Select value={form.antenna_id} onValueChange={v => updateForm('antenna_id', v)}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                 <SelectContent>
@@ -79,7 +79,7 @@ export default function ClientFormDialog({ client, antennas, technicians, onClos
               </Select>
             </div>
             <div>
-              <Label>Técnico *</Label>
+              <Label>Técnico</Label>
               <Select value={form.technician_email} onValueChange={v => updateForm('technician_email', v)}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                 <SelectContent>
@@ -117,7 +117,7 @@ export default function ClientFormDialog({ client, antennas, technicians, onClos
           </div>
           <div className="flex gap-3 pt-2">
             <Button variant="outline" onClick={onClose} className="flex-1">Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving || !form.full_name || !form.address || !form.antenna_id || !form.technician_email} className="flex-1">
+            <Button onClick={handleSave} disabled={saving || !form.full_name} className="flex-1">
               {saving ? 'Guardando...' : 'Guardar'}
             </Button>
           </div>
