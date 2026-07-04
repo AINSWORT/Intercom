@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Antenna as AntennaEntity } from '@/api/entities';
+import { Antenna as AntennaEntity, Client } from '@/api/entities';
 import { Plus, Radio, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/Components/UI/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/Components/UI/alert-dialog';
@@ -11,17 +11,25 @@ export default function Antennas() {
   const { user, isAdmin, isSuperadmin } = useCurrentUser();
   const canModify = (antenna) => isSuperadmin || (user?.role === 'admin' && antenna.created_by === user?.id);
   const [antennas, setAntennas] = useState([]);
+  const [clientCounts, setClientCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
 
+  const countClientsByAntenna = (clients) =>
+    clients.reduce((acc, c) => {
+      if (c.antenna_id) acc[c.antenna_id] = (acc[c.antenna_id] || 0) + 1;
+      return acc;
+    }, {});
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const a = await AntennaEntity.list('-created_at');
+        const [a, clients] = await Promise.all([AntennaEntity.list('-created_at'), Client.list()]);
         setAntennas(a);
+        setClientCounts(countClientsByAntenna(clients));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -32,8 +40,9 @@ export default function Antennas() {
   }, []);
 
   const reloadData = async () => {
-    const a = await AntennaEntity.list('-created_at');
+    const [a, clients] = await Promise.all([AntennaEntity.list('-created_at'), Client.list()]);
     setAntennas(a);
+    setClientCounts(countClientsByAntenna(clients));
   };
 
   const handleDelete = async () => {
@@ -97,6 +106,9 @@ export default function Antennas() {
                 {antenna.status}
               </span>
               <span className="text-xs text-muted-foreground">{antenna.type}</span>
+              <span className="text-xs text-muted-foreground ml-auto">
+                {clientCounts[antenna.id] || 0} cliente{clientCounts[antenna.id] === 1 ? '' : 's'}
+              </span>
             </div>
             {antenna.notes && <p className="text-xs text-muted-foreground mt-2">{antenna.notes}</p>}
           </div>
