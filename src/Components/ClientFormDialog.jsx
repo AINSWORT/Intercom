@@ -22,17 +22,29 @@ export default function ClientFormDialog({ client, antennas, technicians, onClos
     notes: client?.notes || '',
   });
   const [saving, setSaving] = useState(false);
+  const [slowSave, setSlowSave] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   const handleSave = async () => {
     setSaving(true);
-    const data = { ...form, monthly_fee: form.monthly_fee ? Number(form.monthly_fee) : undefined };
-    if (client) {
-      await Client.update(client.id, data);
-    } else {
-      await Client.create(data);
+    setSlowSave(false);
+    setSaveError(null);
+    const slowTimer = setTimeout(() => setSlowSave(true), 6000);
+    try {
+      const data = { ...form, monthly_fee: form.monthly_fee ? Number(form.monthly_fee) : undefined };
+      if (client) {
+        await Client.update(client.id, data);
+      } else {
+        await Client.create(data);
+      }
+      onSaved();
+    } catch (err) {
+      setSaveError(err.message || 'No se pudo guardar. Intenta de nuevo.');
+    } finally {
+      clearTimeout(slowTimer);
+      setSaving(false);
+      setSlowSave(false);
     }
-    setSaving(false);
-    onSaved();
   };
 
   const updateForm = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
@@ -115,6 +127,12 @@ export default function ClientFormDialog({ client, antennas, technicians, onClos
             <Label>Notas</Label>
             <Textarea value={form.notes} onChange={e => updateForm('notes', e.target.value)} rows={2} />
           </div>
+          {saveError && (
+            <p className="text-sm text-destructive">{saveError}</p>
+          )}
+          {slowSave && (
+            <p className="text-sm text-muted-foreground">Esto está tardando más de lo normal, sigue esperando...</p>
+          )}
           <div className="flex gap-3 pt-2">
             <Button variant="outline" onClick={onClose} className="flex-1">Cancelar</Button>
             <Button onClick={handleSave} disabled={saving || !form.full_name} className="flex-1">
