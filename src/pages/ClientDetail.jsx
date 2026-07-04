@@ -12,7 +12,7 @@ import ErrorState from '@/Components/ErrorState';
 export default function ClientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, isSuperadmin, isUsuario } = useCurrentUser();
+  const { user, isSuperadmin } = useCurrentUser();
   const [client, setClient] = useState(null);
   const [payments, setPayments] = useState([]);
   const [antennas, setAntennas] = useState([]);
@@ -111,7 +111,7 @@ export default function ClientDetail() {
         </div>
         {(isSuperadmin
           || (user?.role === 'admin' && client.created_by === user?.id)
-          || (isUsuario && client.technician_email === user?.email)) && (
+          || (!!user?.email && client.technician_email === user.email)) && (
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setShowEdit(true)} className="gap-1.5">
               <Edit className="w-4 h-4" /> Editar
