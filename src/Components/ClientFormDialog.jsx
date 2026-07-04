@@ -60,7 +60,7 @@ export default function ClientFormDialog({ client, antennas, technicians, onClos
             <Label>Nombre completo *</Label>
             <Input value={form.full_name} onChange={e => updateForm('full_name', e.target.value)} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Teléfono</Label>
               <Input value={form.phone} onChange={e => updateForm('phone', e.target.value)} />
@@ -78,7 +78,7 @@ export default function ClientFormDialog({ client, antennas, technicians, onClos
             <Label>Plan</Label>
             <Input value={form.plan} onChange={e => updateForm('plan', e.target.value)} placeholder="Ej: 10Mbps, 20Mbps" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Antena</Label>
               <Select value={form.antenna_id} onValueChange={v => updateForm('antenna_id', v)}>
@@ -106,7 +106,7 @@ export default function ClientFormDialog({ client, antennas, technicians, onClos
             <Label>Número de tarjeta bancaria</Label>
             <Input value={form.bank_card_number} onChange={e => updateForm('bank_card_number', e.target.value)} placeholder="XXXX XXXX XXXX XXXX" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Estado</Label>
               <Select value={form.status} onValueChange={v => updateForm('status', v)}>

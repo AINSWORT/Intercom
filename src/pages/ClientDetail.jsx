@@ -97,22 +97,24 @@ export default function ClientDetail() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/clientes')}>
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-foreground">{client.full_name}</h1>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColor[client.status] || 'bg-gray-100 text-gray-600'}`}>
-              {client.status || 'Activo'}
-            </span>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-center gap-4 min-w-0">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/clientes')} className="shrink-0">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-bold text-foreground break-words">{client.full_name}</h1>
+              <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${statusColor[client.status] || 'bg-gray-100 text-gray-600'}`}>
+                {client.status || 'Activo'}
+              </span>
+            </div>
           </div>
         </div>
         {(isSuperadmin
           || (user?.role === 'admin' && client.created_by === user?.id)
           || (!!user?.email && client.technician_email === user.email)) && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 sm:ml-auto">
             <Button variant="outline" size="sm" onClick={() => setShowEdit(true)} className="gap-1.5">
               <Edit className="w-4 h-4" /> Editar
             </Button>

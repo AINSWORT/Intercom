@@ -45,7 +45,7 @@ export default function AntennaFormDialog({ antenna, onClose, onSaved }) {
             <Label>Ubicación *</Label>
             <Input value={form.location} onChange={e => updateForm('location', e.target.value)} placeholder="Ej: Torre central, Col. Centro" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Tipo *</Label>
               <Select value={form.type} onValueChange={v => updateForm('type', v)}>

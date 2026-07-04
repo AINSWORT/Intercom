@@ -137,20 +137,20 @@ export default function Technicians() {
         {users.map(user => {
           const RoleIcon = ROLE_ICON[user.role] || Wrench;
           return (
-            <div key={user.id} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+            <div key={user.id} className="bg-card rounded-xl border border-border p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+              <div className="flex items-center gap-4 min-w-0">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                   user.role === 'usuario' ? 'bg-accent text-accent-foreground' : 'bg-primary/10 text-primary'
                 }`}>
                   <RoleIcon className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">{user.full_name || 'Sin nombre'}</h3>
-                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-foreground truncate">{user.full_name || 'Sin nombre'}</h3>
+                  <p className="text-sm text-muted-foreground truncate">{user.email}</p>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="flex items-center gap-2 justify-end">
+              <div className="flex items-center justify-between sm:flex-col sm:items-end gap-2 sm:gap-1 sm:shrink-0">
+                <div className="flex items-center gap-2">
                   {isSuperadmin ? (
                     <Select
                       value={user.role}
@@ -182,7 +182,7 @@ export default function Technicians() {
                     </Button>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">{getClientCount(user.email)} clientes asignados</p>
+                <p className="text-xs text-muted-foreground whitespace-nowrap">{getClientCount(user.email)} clientes asignados</p>
               </div>
             </div>
           );
